@@ -38,10 +38,8 @@ async def home(_request):
 
 @mcp.custom_route("/hello", methods=["GET"])
 async def hello_html(_request):
-return {
-        "result": f"Hello, {name}!",
-        "ui_url": "https://fast-mcp-ea730b34.alpic.live/hello"
-    }
+    # This prints HTML in browser
+    return HTMLResponse("<h1>Hello Surya</h1>")
 
 @mcp.custom_route("/api/hello", methods=["GET"])
 async def api_hello(request):
