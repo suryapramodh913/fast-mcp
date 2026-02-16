@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hello Widget</title>
+    <style>
+      body { font-family: system-ui, Arial; padding: 12px; }
+      .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; }
+      .title { font-weight: 700; margin-bottom: 8px; }
+      .msg { font-size: 18px; margin-top: 8px; }
+      .muted { color: #666; font-size: 12px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">Hello Widget</div>
+      <div id="msg" class="msg">Waiting for tool result…</div>
+      <div class="muted">This widget updates when ChatGPT sends <code>ui/notifications/tool-result</code>.</div>
+    </div>
+
+    <script>
+      const msg = document.getElementById("msg");
+
+      // MCP Apps bridge: ChatGPT posts JSON-RPC notifications to the iframe.
+      window.addEventListener("message", (event) => {
+        const m = event?.data;
+        if (!m || m.jsonrpc !== "2.0") return;
+
+        // Tool result notification (host -> widget)
+        if (m.method === "ui/notifications/tool-result") {
+          // payload usually includes tool name, arguments, result, and meta
+          const result = m.params?.result || m.params;
+          const structured = result?.structuredContent;
+
+          if (structured?.message) {
+            msg.textContent = structured.message;
+          } else {
+            msg.textContent = "Got result, but no structuredContent.message";
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
