@@ -1,16 +1,37 @@
 import os
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastmcp import FastMCP
 
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
+
+# ---- MCP server ----
 mcp = FastMCP("fast-mcp")
 
 @mcp.tool
 def hello(name: str) -> str:
     return f"Hello, {name}!"
 
+# The actual MCP ASGI app
+mcp_asgi = mcp.http_app()
+
+# ---- Wrapper sub-app for /mcp so GET /mcp is not 404 ----
+async def mcp_probe(_request):
+    return JSONResponse({"status": "ok", "note": "MCP endpoint is alive. Use POST for MCP calls."})
+
+mcp_wrapper = Starlette(
+    routes=[
+        Route("/", mcp_probe, methods=["GET"]),      # <-- makes Alpic probe pass
+        Mount("/", app=mcp_asgi),                    # <-- forwards POST/stream calls to FastMCP
+    ]
+)
+
+# ---- Web app (ASGI) ----
 app = FastAPI()
-app.mount("/mcp", mcp.http_app())
+
+# Mount wrapper at /mcp
+app.mount("/mcp", mcp_wrapper)
 
 @app.get("/health")
 def health():
@@ -38,7 +59,6 @@ def home():
 def api_hello(name: str = "Surya"):
     return {"message": hello(name)}
 
-# ✅ IMPORTANT: start the server so Alpic can detect the port
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
