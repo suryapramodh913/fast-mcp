@@ -1,11 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Widget</title>
-</head>
-<body>
-    <h3>Hello (loading…)</h3>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+  </head>
+  <body style="font-family:system-ui;">
+    <h3 id="msg">Hello (loading…)</h3>
+    <button id="btn">Say Hello to Surya</button>
+
+    <script>
+      const msg = document.getElementById("msg");
+      document.getElementById("btn").onclick = async () => {
+        // Use your normal HTTP endpoint (simplest)
+        const r = await fetch("/api/hello?name=Surya");
+        const data = await r.json();
+        msg.textContent = data.message;
+      };
+      msg.textContent = "Hello widget ready";
+    </script>
+  </body>
 </html>
