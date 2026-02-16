@@ -1,0 +1,15 @@
+[project]
+name = "my-fastmcp-server"
+version = "0.1.0"
+description = "FastMCP server"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastmcp",
+    "starlette"
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
