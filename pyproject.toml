@@ -1,9 +1,8 @@
 [project]
 name = "my-fastmcp-server"
 version = "0.1.0"
-description = "FastMCP server"
-readme = "README.md"
-requires-python = ">=3.10"
+description = "FastMCP server deployed on Alpic"
+requires-python = ">=3.10,<3.14"
 
 dependencies = [
     "fastmcp",
@@ -11,6 +10,26 @@ dependencies = [
     "uvicorn"
 ]
 
+# -------------------------
+# Build system
+# -------------------------
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+# -------------------------
+# Tell setuptools exactly what to package
+# -------------------------
+[tool.setuptools]
+py-modules = ["main"]
+
+# Prevent scanning random folders like public/ or alpic/
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["public*", "alpic*", "tests*"]
+
+# -------------------------
+# Optional metadata
+# -------------------------
+[project.urls]
+Homepage = "https://example.com"
