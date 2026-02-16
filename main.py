@@ -1,18 +1,15 @@
+import os
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastmcp import FastMCP
 
-# ---- MCP server ----
 mcp = FastMCP("fast-mcp")
 
 @mcp.tool
 def hello(name: str) -> str:
     return f"Hello, {name}!"
 
-# ---- Web app (ASGI) ----
 app = FastAPI()
-
-# ✅ Alpic probes this endpoint; MUST exist
 app.mount("/mcp", mcp.http_app())
 
 @app.get("/health")
@@ -40,3 +37,8 @@ def home():
 @app.get("/api/hello")
 def api_hello(name: str = "Surya"):
     return {"message": hello(name)}
+
+# ✅ IMPORTANT: start the server so Alpic can detect the port
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
