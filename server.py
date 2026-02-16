@@ -6,7 +6,7 @@ mcp = FastMCP("my-fastmcp-server")
 
 @mcp.tool
 def hello(name: str) -> str:
-    return f"Hello, {name}!"
+    return f"Hello, {name} Super!"
 
 # Health check endpoint (helps confirm deployment works)
 @mcp.custom_route("/health", methods=["GET"])
