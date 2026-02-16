@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Remove bad lockfile if exists
+        run: rm -f uv.lock
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -28,5 +31,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add uv.lock
-          git commit -m "Add uv.lock" || echo "No changes to commit"
+          git commit -m "Generate uv.lock" || echo "No changes"
           git push
