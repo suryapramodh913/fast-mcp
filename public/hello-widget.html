@@ -18,6 +18,7 @@
 
     <script>
       window.addEventListener("message", (event) => {
+        console.log("Message", event);
         const m = event?.data;
         if (!m || m.jsonrpc !== "2.0") return;
 
