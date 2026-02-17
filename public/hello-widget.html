@@ -20,7 +20,7 @@
     <script>
       window.addEventListener("message", (event) => {
         const m = event?.data;
-        document.getElementById("msg").textContent = JSON.stringify(m);
+        document.getElementById("data").textContent = JSON.stringify(m);
         if (!m || m.jsonrpc !== "2.0") return;
         if (m.method !== "ui/notifications/tool-result") return;
 
