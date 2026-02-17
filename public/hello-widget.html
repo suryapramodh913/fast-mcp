@@ -19,6 +19,7 @@
 
     <script>
       window.addEventListener("message", (event) => {
+        console.log("Message", event);
         const m = event?.data;
         document.getElementById("data").textContent = JSON.stringify(m);
         if (!m || m.jsonrpc !== "2.0") return;
