@@ -1,13 +1,39 @@
-<div id="msg">Waiting…</div>
-<script>
-  window.addEventListener("message", (event) => {
-    const m = event?.data;
-    if (!m || m.jsonrpc !== "2.0") return;
-    if (m.method === "ui/notifications/tool-result") {
-      const structured = m.params?.result?.structuredContent;
-      if (structured?.message) {
-        document.getElementById("msg").textContent = structured.message;
-      }
-    }
-  });
-</script>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body { font-family: system-ui, Arial; padding: 12px; }
+      .card { border: 1px solid #ddd; border-radius: 14px; padding: 12px; }
+      .title { font-weight: 700; margin-bottom: 8px; }
+      #msg { font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">Greeting</div>
+      <div id="msg">Waiting for tool result…</div>
+    </div>
+
+    <script>
+      // ChatGPT host -> widget messages arrive as JSON-RPC via postMessage.
+      window.addEventListener("message", (event) => {
+        const m = event?.data;
+        if (!m || m.jsonrpc !== "2.0") return;
+
+        // The host notifies tool results like this:
+        if (m.method === "ui/notifications/tool-result") {
+          const result = m.params?.result;
+          const message = result?.structuredContent?.message;
+
+          if (message) {
+            document.getElementById("msg").textContent = message;
+          } else {
+            document.getElementById("msg").textContent = "Got tool result (no message found)";
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
