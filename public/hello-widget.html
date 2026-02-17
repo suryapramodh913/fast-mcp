@@ -90,8 +90,9 @@
     }
 
     console.log("Processing tool result notification, params:", m.params);
-    // IMPORTANT: payload is in params (not params.result)
-    renderFromToolResult(m.params);
+    // Extract the tool result from params.result if it exists, otherwise use params directly
+    const toolResult = m.params?.result || m.params;
+    renderFromToolResult(toolResult);
   }, { passive: true });
 </script>
 
