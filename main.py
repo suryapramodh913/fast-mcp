@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from fastmcp import FastMCP
 from starlette.responses import HTMLResponse, JSONResponse
 
@@ -9,38 +8,31 @@ mcp = FastMCP("fast-mcp")
 PUBLIC_DIR = Path(__file__).parent / "public"
 WIDGET_PATH = PUBLIC_DIR / "hello-widget.html"
 
-# Required by Apps SDK widget runtime
 UI_URI = "ui://hello-widget"
 UI_MIME = "text/html;profile=mcp-app"
 
 
-# -------------------------
-# 1) Tool (plain)
-# -------------------------
-@mcp.tool
-def hello(name: str) -> str:
+# ✅ Plain Python helper (NOT a tool)
+def hello_message(name: str) -> str:
     return f"Hello, {name}!"
 
 
 # -------------------------
-# 2) UI Resource (this is what ChatGPT renders)
+# Tool 1: plain hello
+# -------------------------
+@mcp.tool
+def hello(name: str) -> str:
+    return hello_message(name)
+
+
+# -------------------------
+# UI Resource: widget HTML for Apps SDK
 # -------------------------
 @mcp.resource(
     UI_URI,
     name="HelloWidget",
-    description="A tiny widget that displays the greeting.",
+    description="A tiny widget that displays a greeting.",
     mime_type=UI_MIME,
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            # If your widget fetches /api/hello, allow your Alpic domain here.
-            # You can also remove csp completely if you don't fetch anything.
-            "csp": {
-                "connectDomains": ["https://fast-mcp-ea730b34.alpic.live"],
-                "resourceDomains": ["https://*.oaistatic.com"],
-            },
-        }
-    },
 )
 def hello_widget_resource() -> str:
     if not WIDGET_PATH.exists():
@@ -49,15 +41,15 @@ def hello_widget_resource() -> str:
 
 
 # -------------------------
-# 3) Tool that triggers the widget render
+# Tool 2: triggers widget render
 # -------------------------
 @mcp.tool(
     name="show_hello_widget",
-    description="Show the hello widget in ChatGPT Apps UI.",
+    description="Show the hello widget inside ChatGPT Apps UI.",
     meta={"ui": {"resourceUri": UI_URI}},
 )
 def show_hello_widget(name: str = "Surya") -> dict:
-    message = hello(name)
+    message = hello_message(name)  # ✅ use helper, NOT hello()
     return {
         "structuredContent": {"message": message},
         "content": [{"type": "text", "text": message}],
@@ -65,9 +57,7 @@ def show_hello_widget(name: str = "Surya") -> dict:
     }
 
 
-# -------------------------
-# Optional: browser routes for sanity checks
-# -------------------------
+# Optional routes (browser checks)
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_request):
     return JSONResponse({"status": "ok"})
