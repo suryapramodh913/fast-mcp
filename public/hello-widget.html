@@ -17,21 +17,13 @@
     </div>
 
     <script>
-      // ChatGPT host -> widget messages arrive as JSON-RPC via postMessage.
       window.addEventListener("message", (event) => {
         const m = event?.data;
         if (!m || m.jsonrpc !== "2.0") return;
 
-        // The host notifies tool results like this:
         if (m.method === "ui/notifications/tool-result") {
-          const result = m.params?.result;
-          const message = result?.structuredContent?.message;
-
-          if (message) {
-            document.getElementById("msg").textContent = message;
-          } else {
-            document.getElementById("msg").textContent = "Got tool result (no message found)";
-          }
+          const msg = m.params?.result?.structuredContent?.message;
+          if (msg) document.getElementById("msg").textContent = msg;
         }
       });
     </script>
