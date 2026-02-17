@@ -36,27 +36,60 @@
   function renderFromToolResult(toolResult) {
     // toolResult is expected to look like:
     // { structuredContent: { message: ... }, content: [...], _meta: {...} }
-    const message = toolResult?.structuredContent?.message;
-    if (message) msgEl.textContent = message;
+    console.log("renderFromToolResult called with:", toolResult);
+    
+    // Try to extract message from various possible locations
+    let message = toolResult?.structuredContent?.message;
+    
+    // Fallback: check if the message is in content array
+    if (!message && toolResult?.content?.[0]?.text) {
+      message = toolResult.content[0].text;
+    }
+    
+    // Fallback: check if toolResult itself is the message
+    if (!message && typeof toolResult === 'string') {
+      message = toolResult;
+    }
+    
+    if (message) {
+      msgEl.textContent = message;
+      console.log("Updated message to:", message);
+    } else {
+      console.warn("No message found in toolResult:", toolResult);
+    }
   }
 
   // ✅ 1) On load, read the latest tool output snapshot if available
-  // Apps SDK exposes this for convenience. :contentReference[oaicite:2]{index=2}
+  console.log("Checking window.openai:", window.openai);
   if (window.openai?.toolOutput) {
+    console.log("Found window.openai.toolOutput:", window.openai.toolOutput);
     renderFromToolResult(window.openai.toolOutput);
     dataEl.textContent = safeStringify({ source: "window.openai.toolOutput", toolOutput: window.openai.toolOutput });
+  } else {
+    console.log("window.openai.toolOutput not available");
+    // Show a default message when opened standalone
+    msgEl.textContent = "Hello, World! (default - waiting for tool invocation)";
+    dataEl.textContent = "No initial tool output available. Waiting for messages...";
   }
 
-  // ✅ 2) Also listen for live notifications from the host (MCP Apps bridge). :contentReference[oaicite:3]{index=3}
+  // ✅ 2) Also listen for live notifications from the host (MCP Apps bridge)
   window.addEventListener("message", (event) => {
     const m = event?.data;
+    console.log("Received message:", m);
 
     // Debug: show everything we receive
-    dataEl.textContent = safeStringify(m);
+    dataEl.textContent = safeStringify({ source: "postMessage", data: m });
 
-    if (!m || m.jsonrpc !== "2.0") return;
-    if (m.method !== "ui/notifications/tool-result") return;
+    if (!m || m.jsonrpc !== "2.0") {
+      console.log("Ignoring non-JSON-RPC message");
+      return;
+    }
+    if (m.method !== "ui/notifications/tool-result") {
+      console.log("Ignoring non-tool-result notification");
+      return;
+    }
 
+    console.log("Processing tool result notification, params:", m.params);
     // IMPORTANT: payload is in params (not params.result)
     renderFromToolResult(m.params);
   }, { passive: true });
