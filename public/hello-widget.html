@@ -13,21 +13,54 @@
   <body>
     <div class="card">
       <div class="title">Greeting</div>
-      <div id="msg">Waiting for tool result…</div>
-      <div id="data">Data…</div>
+<div id="msg">Waiting for tool result…</div>
+<pre id="data">Data…</pre>
+
     </div>
 
-    <script>
-      window.addEventListener("message", (event) => {
-        console.log("Message", event);
-        const m = event?.data;
-        document.getElementById("data").textContent = JSON.stringify(m);
-        if (!m || m.jsonrpc !== "2.0") return;
-        if (m.method !== "ui/notifications/tool-result") return;
+<script>
+  const msgEl = document.getElementById("msg");
+  const dataEl = document.getElementById("data");
 
-        const message = m.params?.result?.structuredContent?.message;
-        if (message) document.getElementById("msg").textContent = message;
-      });
-    </script>
+  function safeStringify(obj) {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (k, v) => {
+      if (typeof v === "object" && v !== null) {
+        if (seen.has(v)) return "[Circular]";
+        seen.add(v);
+      }
+      return v;
+    }, 2);
+  }
+
+  function renderFromToolResult(toolResult) {
+    // toolResult is expected to look like:
+    // { structuredContent: { message: ... }, content: [...], _meta: {...} }
+    const message = toolResult?.structuredContent?.message;
+    if (message) msgEl.textContent = message;
+  }
+
+  // ✅ 1) On load, read the latest tool output snapshot if available
+  // Apps SDK exposes this for convenience. :contentReference[oaicite:2]{index=2}
+  if (window.openai?.toolOutput) {
+    renderFromToolResult(window.openai.toolOutput);
+    dataEl.textContent = safeStringify({ source: "window.openai.toolOutput", toolOutput: window.openai.toolOutput });
+  }
+
+  // ✅ 2) Also listen for live notifications from the host (MCP Apps bridge). :contentReference[oaicite:3]{index=3}
+  window.addEventListener("message", (event) => {
+    const m = event?.data;
+
+    // Debug: show everything we receive
+    dataEl.textContent = safeStringify(m);
+
+    if (!m || m.jsonrpc !== "2.0") return;
+    if (m.method !== "ui/notifications/tool-result") return;
+
+    // IMPORTANT: payload is in params (not params.result)
+    renderFromToolResult(m.params);
+  }, { passive: true });
+</script>
+
   </body>
 </html>
