@@ -110,6 +110,7 @@ function preProcessToolResult(toolResult) {
 Extend the `Middleware` base class and override the `on_call_tool` method:
 
 ```python
+from typing import Any
 from fastmcp.server.middleware.middleware import Middleware, MiddlewareContext, CallNext
 from mcp.types import CallToolRequestParams
 
@@ -117,8 +118,8 @@ class CustomMiddleware(Middleware):
     async def on_call_tool(
         self,
         context: MiddlewareContext[CallToolRequestParams],
-        call_next: CallNext[CallToolRequestParams, any],
-    ) -> any:
+        call_next: CallNext[CallToolRequestParams, Any],
+    ) -> Any:
         # PRE-processing logic
         tool_name = context.message.name
         arguments = context.message.arguments

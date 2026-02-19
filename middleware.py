@@ -1,6 +1,7 @@
 """
 Custom middleware for FastMCP to run logic before tool calls.
 """
+from typing import Any
 from fastmcp.server.middleware.middleware import Middleware, MiddlewareContext, CallNext
 from mcp.types import CallToolRequestParams, Tool
 import logging
@@ -19,8 +20,8 @@ class ToolCallLoggerMiddleware(Middleware):
     async def on_call_tool(
         self,
         context: MiddlewareContext[CallToolRequestParams],
-        call_next: CallNext[CallToolRequestParams, any],
-    ) -> any:
+        call_next: CallNext[CallToolRequestParams, Any],
+    ) -> Any:
         """
         Hook that runs before every tool call.
         
