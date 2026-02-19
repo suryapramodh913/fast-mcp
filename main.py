@@ -1,50 +1,134 @@
 import os
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 from fastmcp import FastMCP
 
 mcp = FastMCP("fast-mcp")
 
 PUBLIC_DIR = Path(__file__).parent / "public"
-WIDGET_PATH = PUBLIC_DIR / "hello-widget.html"
+WIDGET_PATH = PUBLIC_DIR / "products-widget-v1.html"
 
-# Bump version when you change HTML to avoid caching
-UI_URI = "ui://widget/hello-widget-v2.html"
+# Bump this when HTML changes to avoid caching
+UI_URI = "ui://widget/products-widget-v1.html"
 UI_MIME = "text/html;profile=mcp-app"
 
 
-def hello_message(name: str) -> str:
-    return f"Hello, {name}!"
+# ---------- Helpers (mocked demo data) ----------
+def _mock_location_from_custom_api(user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Replace this with a real call to your custom location API.
+    In production, you'd do a requests.get(...) to your internal service,
+    validate auth, and normalize the response.
+    """
+    return {
+        "userId": user_id or "demo-user",
+        "locationId": "TN-NASH-001",
+        "city": "Nashville",
+        "state": "TN",
+        "zip": "37201",
+        "lat": 36.1627,
+        "lon": -86.7816,
+        "source": "mock-custom-location-api",
+    }
 
 
-@mcp.tool
-def hello(name: str) -> str:
-    return hello_message(name)
+def _mock_products(query: str, location: Dict[str, Any]) -> List[Dict[str, Any]]:
+    # Replace with real “products near location” logic
+    return [
+        {
+            "id": "sku-1001",
+            "name": f"{query.title()} — Heavy Duty",
+            "price": 19.99,
+            "availability": "In Stock",
+            "store": location["locationId"],
+            "distanceMiles": 2.3,
+        },
+        {
+            "id": "sku-1002",
+            "name": f"{query.title()} — Value Pack",
+            "price": 12.49,
+            "availability": "Limited Stock",
+            "store": location["locationId"],
+            "distanceMiles": 4.8,
+        },
+        {
+            "id": "sku-1003",
+            "name": f"{query.title()} — Premium",
+            "price": 29.0,
+            "availability": "Pickup Tomorrow",
+            "store": location["locationId"],
+            "distanceMiles": 6.1,
+        },
+    ]
 
 
-# ✅ IMPORTANT: return HTML STRING only
+# ---------- UI Resource ----------
 @mcp.resource(
     UI_URI,
-    name="HelloWidget",
-    description="Hello widget UI",
+    name="ProductsWidget",
+    description="Products widget UI",
     mime_type=UI_MIME,
 )
-def hello_widget_resource() -> str:
+def products_widget_resource() -> str:
     if not WIDGET_PATH.exists():
-        return "<h3>Missing public/hello-widget.html</h3>"
+        return "<h3>Missing public/products-widget-v1.html</h3>"
     return WIDGET_PATH.read_text(encoding="utf-8")
 
 
+# ---------- Tools ----------
 @mcp.tool(
-    name="show_hello_widget",
-    description="Render hello widget in ChatGPT Apps UI.",
+    name="resolve_location",
+    description="Resolve the current user's location via custom API (server-side).",
+)
+def resolve_location(user_id: str = "demo-user") -> Dict[str, Any]:
+    loc = _mock_location_from_custom_api(user_id=user_id)
+    # Return as plain JSON (no UI meta needed)
+    return loc
+
+
+@mcp.tool(
+    name="find_products",
+    description="Find products near a location.",
+)
+def find_products(
+    query: str,
+    locationId: str,
+    lat: float,
+    lon: float,
+    radiusMiles: int = 25,
+) -> Dict[str, Any]:
+    location = {
+        "locationId": locationId,
+        "lat": lat,
+        "lon": lon,
+        "radiusMiles": radiusMiles,
+    }
+    # Real implementation: call your catalog/search service(s)
+    products = _mock_products(query=query, location={"locationId": locationId, "lat": lat, "lon": lon})
+    return {
+        "structuredContent": {
+            "query": query,
+            "location": location,
+            "products": products,
+            "message": f"Found {len(products)} results near {locationId}.",
+        },
+        "content": [{"type": "text", "text": f"Found {len(products)} products near {locationId}"}],
+    }
+
+
+@mcp.tool(
+    name="show_products_widget",
+    description="Render products widget in ChatGPT Apps UI.",
     meta={"ui": {"resourceUri": UI_URI}},
 )
-def show_hello_widget(name: str = "Surya") -> dict:
-    message = hello_message(name)
+def show_products_widget() -> Dict[str, Any]:
+    # This tool is just to show the UI
     return {
-        "structuredContent": {"message": message},
+        "structuredContent": {
+            "message": "Products widget ready. Search using the UI.",
+        },
         "_meta": {"ui": {"resourceUri": UI_URI}},
-        "content": [{"type": "text", "text": message}],
+        "content": [{"type": "text", "text": "Products widget ready."}],
     }
 
 
