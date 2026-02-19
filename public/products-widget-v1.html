@@ -165,7 +165,13 @@
           const loc = await callTool("resolve_location", { user_id: "demo-user" });
           // Depending on host wrapper, loc may be the raw JSON or inside structuredContent
           const locObj = loc?.structuredContent ?? loc;
-          locPill.textContent = `Location: ${locObj.city || ""} ${locObj.state || ""} (${locObj.locationId || "?"})`;
+          const locationText = `Location: ${locObj.city || ""} ${locObj.state || ""} (${locObj.locationId || "?"})`;
+          locPill.textContent = locationText;
+
+          // Requires a JSON-RPC request/response helper.
+await rpcRequest("ui/update-model-context", {
+  content: [{ type: "text", text: `User location is ${locationText}` }],
+});
 
           msgEl.textContent = "Searching products near you…";
 
