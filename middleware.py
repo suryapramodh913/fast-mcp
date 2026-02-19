@@ -3,7 +3,7 @@ Custom middleware for FastMCP to run logic before tool calls.
 """
 from typing import Any
 from fastmcp.server.middleware.middleware import Middleware, MiddlewareContext, CallNext
-from mcp.types import CallToolRequestParams, Tool
+from mcp.types import CallToolRequestParams
 import logging
 
 logger = logging.getLogger(__name__)

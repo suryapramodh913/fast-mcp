@@ -4,7 +4,7 @@ Client-side wrapper for FastMCP to run logic before making MCP calls.
 This demonstrates how to add pre-processing logic on the client side
 before sending requests to the MCP server.
 """
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Callable
 import logging
 
 logger = logging.getLogger(__name__)

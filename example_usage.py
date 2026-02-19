@@ -77,7 +77,7 @@ async def demo_client_server_interaction():
     @client_wrapper.before_tool_call
     def validate_and_log(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Client-side validation before sending to server."""
-        logger.info(f"🌐 [CLIENT BROWSER-SIDE] Validating {tool_name}")
+        logger.info(f"💻 [CLIENT PYTHON] Validating {tool_name}")
         
         # Example: Add metadata
         from datetime import datetime
@@ -85,7 +85,7 @@ async def demo_client_server_interaction():
         
         # Example: Validate inputs
         if tool_name == "greet" and len(arguments.get("name", "")) == 0:
-            logger.warning("⚠️  [CLIENT BROWSER-SIDE] Empty name provided!")
+            logger.warning("⚠️  [CLIENT PYTHON] Empty name provided!")
         
         return arguments
     
