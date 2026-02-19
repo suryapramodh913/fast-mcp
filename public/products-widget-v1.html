@@ -1,0 +1,242 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body { font-family: system-ui, Arial; padding: 12px; background: #fafafa; }
+      .card { border: 1px solid #e5e5e5; border-radius: 14px; padding: 12px; background: white; }
+      .title { font-weight: 700; margin-bottom: 8px; }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; min-width: 240px; }
+      button { padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #111; color: #fff; cursor: pointer; }
+      button.secondary { background: #fff; color: #111; }
+      button:disabled { opacity: .6; cursor: not-allowed; }
+      #msg { font-size: 14px; color: #444; margin: 8px 0 12px; }
+      .pill { font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #f2f2f2; display: inline-block; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
+      .prod { border: 1px solid #eee; border-radius: 12px; padding: 10px; }
+      .prod h4 { margin: 0 0 4px; font-size: 14px; }
+      .meta { font-size: 12px; color: #555; display: flex; gap: 10px; flex-wrap: wrap; }
+      pre { background: #0b1020; color: #d6e1ff; padding: 10px; border-radius: 12px; overflow: auto; font-size: 12px; }
+      .split { display: grid; grid-template-columns: 1fr; gap: 12px; }
+      @media (min-width: 900px) { .split { grid-template-columns: 1.2fr .8fr; } .grid{ grid-template-columns: 1fr 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">Find Products Near Me</div>
+
+      <div class="row">
+        <input id="q" placeholder="Search query (e.g., gloves, feeder, rope)" />
+        <button id="btnNear">Find near me</button>
+        <button id="btnJustTool" class="secondary" title="Calls find_products with a hardcoded location">Demo call</button>
+        <span class="pill" id="locPill">Location: unknown</span>
+      </div>
+
+      <div id="msg">Waiting…</div>
+
+      <div class="split">
+        <div>
+          <div class="grid" id="products"></div>
+        </div>
+        <div>
+          <div class="title" style="margin-top:0;">Debug payload</div>
+          <pre id="data">No data yet…</pre>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const qEl = document.getElementById("q");
+      const btnNear = document.getElementById("btnNear");
+      const btnJustTool = document.getElementById("btnJustTool");
+      const msgEl = document.getElementById("msg");
+      const dataEl = document.getElementById("data");
+      const productsEl = document.getElementById("products");
+      const locPill = document.getElementById("locPill");
+
+      function safeStringify(obj) {
+        const seen = new WeakSet();
+        return JSON.stringify(obj, (k, v) => {
+          if (typeof v === "object" && v !== null) {
+            if (seen.has(v)) return "[Circular]";
+            seen.add(v);
+          }
+          return v;
+        }, 2);
+      }
+
+      // --- JSON-RPC helpers (works even if window.openai.callTool is missing) ---
+      let rpcId = 1;
+      function rpcRequest(method, params) {
+        return new Promise((resolve, reject) => {
+          const id = rpcId++;
+
+          function onMessage(event) {
+            if (event.source !== window.parent) return;
+            const msg = event.data;
+            if (!msg || msg.jsonrpc !== "2.0") return;
+            if (msg.id !== id) return;
+
+            window.removeEventListener("message", onMessage);
+
+            if (msg.error) reject(msg.error);
+            else resolve(msg.result);
+          }
+
+          window.addEventListener("message", onMessage, { passive: true });
+          window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+        });
+      }
+
+      async function callTool(name, args) {
+        // Prefer host helper if available
+        if (window.openai?.callTool) {
+          return window.openai.callTool(name, args);
+        }
+        // Otherwise use JSON-RPC
+        return rpcRequest("tools/call", { name, arguments: args });
+      }
+
+      // --- Renderers ---
+      function setBusy(isBusy) {
+        btnNear.disabled = isBusy;
+        btnJustTool.disabled = isBusy;
+      }
+
+      function renderProducts(structured) {
+        const products = structured?.products || [];
+        productsEl.innerHTML = "";
+
+        if (!products.length) {
+          productsEl.innerHTML = `<div class="prod">No products returned.</div>`;
+          return;
+        }
+
+        for (const p of products) {
+          const div = document.createElement("div");
+          div.className = "prod";
+          div.innerHTML = `
+            <h4>${escapeHtml(p.name || p.id)}</h4>
+            <div class="meta">
+              <span>Price: $${p.price}</span>
+              <span>${escapeHtml(p.availability || "")}</span>
+              <span>${escapeHtml(p.store || "")}</span>
+              <span>${p.distanceMiles} mi</span>
+            </div>
+          `;
+          productsEl.appendChild(div);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[c]));
+      }
+
+      function renderToolResult(toolResult) {
+        const structured = toolResult?.structuredContent || toolResult || {};
+        const message =
+          structured?.message ??
+          toolResult?.content?.find?.(c => c.type === "text")?.text ??
+          toolResult?.content?.[0]?.text;
+
+        if (message) msgEl.textContent = message;
+        renderProducts(structured);
+
+        dataEl.textContent = safeStringify({ type: "tool-result", toolResult });
+      }
+
+      function renderToolInput(toolInput) {
+        dataEl.textContent = safeStringify({ type: "tool-input", toolInput });
+      }
+
+      // --- Pre-logic: resolve location then call find_products ---
+      async function findNearMe() {
+        const query = (qEl.value || "").trim() || "feed";
+
+        setBusy(true);
+        msgEl.textContent = "Resolving location…";
+
+        try {
+          // 1) pre-step: resolve location
+          const loc = await callTool("resolve_location", { user_id: "demo-user" });
+          // Depending on host wrapper, loc may be the raw JSON or inside structuredContent
+          const locObj = loc?.structuredContent ?? loc;
+          locPill.textContent = `Location: ${locObj.city || ""} ${locObj.state || ""} (${locObj.locationId || "?"})`;
+
+          msgEl.textContent = "Searching products near you…";
+
+          // 2) call product tool with injected attributes
+          const result = await callTool("find_products", {
+            query,
+            locationId: locObj.locationId,
+            lat: locObj.lat,
+            lon: locObj.lon,
+            radiusMiles: 25
+          });
+
+          renderToolResult(result?.structuredContent ? result : result);
+
+        } catch (e) {
+          msgEl.textContent = "Error running near-me search.";
+          dataEl.textContent = safeStringify({ error: e });
+          console.error(e);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      // Demo call without location step (hardcoded)
+      async function demoCall() {
+        const query = (qEl.value || "").trim() || "feed";
+        setBusy(true);
+        msgEl.textContent = "Demo: calling tool with hardcoded location…";
+        try {
+          const result = await callTool("find_products", {
+            query,
+            locationId: "TN-NASH-001",
+            lat: 36.1627,
+            lon: -86.7816,
+            radiusMiles: 25
+          });
+          renderToolResult(result);
+        } catch (e) {
+          msgEl.textContent = "Error in demo call.";
+          dataEl.textContent = safeStringify({ error: e });
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      btnNear.addEventListener("click", findNearMe);
+      btnJustTool.addEventListener("click", demoCall);
+
+      // --- Bridge listeners (host -> iframe) ---
+      // Snapshot support:
+      if (window.openai?.toolOutput) {
+        renderToolResult(window.openai.toolOutput);
+      } else {
+        msgEl.textContent = "Widget loaded. Type a query and click “Find near me”.";
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== window.parent) return;
+
+        const m = event.data;
+        if (!m || m.jsonrpc !== "2.0") return;
+
+        if (m.method === "ui/notifications/tool-input") {
+          renderToolInput(m.params);
+          return;
+        }
+        if (m.method === "ui/notifications/tool-result") {
+          renderToolResult(m.params);
+          return;
+        }
+      }, { passive: true });
+    </script>
+  </body>
+</html>
