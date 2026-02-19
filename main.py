@@ -1,8 +1,16 @@
 import os
+import logging
 from pathlib import Path
 from fastmcp import FastMCP
+from middleware import ToolCallLoggerMiddleware
+
+# Configure logging to see middleware output
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 mcp = FastMCP("fast-mcp")
+
+# Add the custom middleware to run logic before tool calls
+mcp.add_middleware(ToolCallLoggerMiddleware())
 
 PUBLIC_DIR = Path(__file__).parent / "public"
 WIDGET_PATH = PUBLIC_DIR / "hello-widget.html"

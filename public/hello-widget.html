@@ -33,10 +33,32 @@
     }, 2);
   }
 
+  // 🔧 PRE-CALL LOGIC: This runs before processing tool results
+  function preProcessToolResult(toolResult) {
+    console.log("🚀 [PRE-CALL BROWSER LOGIC] Processing tool result");
+    console.log("🚀 [PRE-CALL BROWSER LOGIC] Tool result data:", toolResult);
+    
+    // Add your custom browser-side logic here:
+    // - Validate data
+    // - Log analytics
+    // - Transform data
+    // - Show loading states
+    // etc.
+    
+    // For demonstration, log the timestamp
+    const timestamp = new Date().toISOString();
+    console.log("🚀 [PRE-CALL BROWSER LOGIC] Timestamp:", timestamp);
+    
+    return toolResult; // Return potentially modified result
+  }
+
   function renderFromToolResult(toolResult) {
     // toolResult is expected to look like:
     // { structuredContent: { message: ... }, content: [...], _meta: {...} }
     console.log("renderFromToolResult called with:", toolResult);
+    
+    // 🔧 RUN PRE-PROCESSING LOGIC BEFORE RENDERING
+    toolResult = preProcessToolResult(toolResult);
     
     // Try to extract message from various possible locations
     let message = toolResult?.structuredContent?.message;
