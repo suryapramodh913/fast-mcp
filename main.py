@@ -31,7 +31,6 @@ def _mock_location_from_custom_api(user_id: Optional[str] = None) -> Dict[str, A
         "source": "mock-custom-location-api",
     }
 
-
 def _mock_products(query: str, location: Dict[str, Any]) -> List[Dict[str, Any]]:
     # Replace with real “products near location” logic
     return [
@@ -77,6 +76,21 @@ def products_widget_resource() -> str:
 
 # ---------- Tools ----------
 @mcp.tool(
+    name="get_meta",
+    description="Return MCP UI/tool metadata that clients can use for rendering or debugging.",
+)
+def get_meta() -> Dict[str, Any]:
+    meta = {
+        "app": {"name": "fast-mcp"},
+        "ui": {"productsWidget": {"resourceUri": UI_URI, "mimeType": UI_MIME}},
+    }
+    return {
+        "structuredContent": {"meta": meta},
+        "_meta": meta,
+        "content": [{"type": "text", "text": "Meta returned."}],
+    }
+
+@mcp.tool(
     name="resolve_location",
     description="Resolve the current user's location via custom API (server-side).",
 )
@@ -84,7 +98,6 @@ def resolve_location(user_id: str = "demo-user") -> Dict[str, Any]:
     loc = _mock_location_from_custom_api(user_id=user_id)
     # Return as plain JSON (no UI meta needed)
     return loc
-
 
 @mcp.tool(
     name="find_products",
@@ -112,9 +125,9 @@ def find_products(
             "products": products,
             "message": f"Found {len(products)} results near {locationId}.",
         },
+        "_meta": {},
         "content": [{"type": "text", "text": f"Found {len(products)} products near {locationId}"}],
     }
-
 
 @mcp.tool(
     name="show_products_widget",
@@ -130,7 +143,6 @@ def show_products_widget() -> Dict[str, Any]:
         "_meta": {"ui": {"resourceUri": UI_URI}},
         "content": [{"type": "text", "text": "Products widget ready."}],
     }
-
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
