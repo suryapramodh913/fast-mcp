@@ -81,14 +81,11 @@ def products_widget_resource() -> str:
 )
 def get_meta() -> Dict[str, Any]:
     meta = {
+        "openai/userLocation": None,
         "app": {"name": "fast-mcp"},
         "ui": {"productsWidget": {"resourceUri": UI_URI, "mimeType": UI_MIME}},
     }
-    return {
-        "structuredContent": {"meta": meta},
-        "_meta": meta,
-        "content": [{"type": "text", "text": "Meta returned."}],
-    }
+    return meta
 
 @mcp.tool(
     name="resolve_location",
