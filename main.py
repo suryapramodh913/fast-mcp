@@ -79,13 +79,24 @@ def products_widget_resource() -> str:
     name="get_meta",
     description="Return MCP UI/tool metadata that clients can use for rendering or debugging.",
 )
-def get_meta() -> Dict[str, Any]:
-    meta = {
-        "openai/userLocation": None,
+def get_meta(ctx: Context) -> Dict[str, Any]:
+    user_location = None
+
+    try:
+        user_location = ctx.meta.get("openai/userLocation")
+    except Exception:
+        user_location = None
+
+    return {
+        "openai/userLocation": user_location,
         "app": {"name": "fast-mcp"},
-        "ui": {"productsWidget": {"resourceUri": UI_URI, "mimeType": UI_MIME}},
+        "ui": {
+            "productsWidget": {
+                "resourceUri": UI_URI,
+                "mimeType": UI_MIME,
+            }
+        },
     }
-    return meta
 
 @mcp.tool(
     name="resolve_location",
