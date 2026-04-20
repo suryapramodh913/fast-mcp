@@ -1,8 +1,16 @@
 import os
+import logging
 from fastmcp import FastMCP
 from starlette.responses import JSONResponse
+from middleware import ToolCallLoggerMiddleware
+
+# Configure logging to see middleware output
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 mcp = FastMCP("my-fastmcp-server")
+
+# Add the custom middleware to run logic before tool calls
+mcp.add_middleware(ToolCallLoggerMiddleware())
 
 @mcp.tool
 def hello(name: str) -> str:
